@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Results</title>
+</head>
+<body>
+    <h1>Your Portfolio, At a Glance</h1>
+    <p><strong>Value:</strong> ${{ "%.2f"|format(summary.total_current_value) }}
+       ({{ "%.2f"|format(summary.total_percent_return) }}% since purchase)</p>
+    <p><strong>Risk level:</strong> {{ risk_label }}</p>
+    <p>{{ risk_explanation }}</p>
+
+    <hr>
+
+    <h2>Details</h2>
+    <p>Total invested: ${{ "%.2f"|format(summary.total_invested) }}</p>
+    <p>Total gain/loss: ${{ "%.2f"|format(summary.total_gain_loss) }}</p>
+    <p>Portfolio volatility: {{ "%.2f"|format(summary.portfolio_volatility) }}%</p>
+    <p>S&P 500 volatility (same period): {{ "%.2f"|format(benchmark_volatility) }}%</p>
+
+    <h3>Per-stock breakdown</h3>
+    <ul>
+    {% for r in results %}
+        <li>{{ r.ticker }}: ${{ "%.2f"|format(r.invested) }} → ${{ "%.2f"|format(r.current_value) }}
+            ({{ "%.2f"|format(r.percent_return) }}%), volatility {{ "%.2f"|format(r.volatility) }}%</li>
+    {% endfor %}
+    </ul>
+
+    <a href="/">Analyze another portfolio</a>
+</body>
+</html>

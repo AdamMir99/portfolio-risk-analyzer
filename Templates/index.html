@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portfolio Risk Analyzer</title>
+</head>
+<body>
+    <h1>Portfolio Risk Analyzer</h1>
+    <p>Enter your stocks below to analyze your portfolio.</p>
+
+    <form method="POST" action="/analyze">
+        <div id="stock-rows">
+            <div class="stock-row">
+                <input type="text" name="ticker" placeholder="Ticker (e.g. AAPL)" required>
+                <input type="number" step="any" name="shares" placeholder="Shares" required>
+                <input type="date" name="purchase_date" required>
+            </div>
+        </div>
+
+        <button type="button" onclick="addStockRow()">+ Add another stock</button>
+        <br><br>
+        <button type="submit">Analyze Portfolio</button>
+    </form>
+
+    <script>
+        function addStockRow() {
+            const container = document.getElementById("stock-rows");
+            const newRow = document.createElement("div");
+            newRow.className = "stock-row";
+            newRow.innerHTML = `
+                <input type="text" name="ticker" placeholder="Ticker (e.g. AAPL)" required>
+                <input type="number" step="any" name="shares" placeholder="Shares" required>
+                <input type="date" name="purchase_date" required>
+            `;
+            container.appendChild(newRow);
+        }
+    </script>
+</body>
+</html>
