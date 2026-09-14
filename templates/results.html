@@ -27,5 +27,55 @@
     </ul>
 
     <a href="/">Analyze another portfolio</a>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h2>Portfolio Allocation</h2>
+<canvas id="allocationChart" width="400" height="400"></canvas>
+
+<h2>Price History</h2>
+{% for ticker in price_histories %}
+    <h3>{{ ticker }}</h3>
+    <canvas id="chart-{{ ticker }}" width="600" height="300"></canvas>
+{% endfor %}
+
+<script>
+    // Allocation pie chart
+    const allocationLabels = {{ allocation_labels|tojson }};
+    const allocationValues = {{ allocation_values|tojson }};
+
+    new Chart(document.getElementById('allocationChart'), {
+        type: 'pie',
+        data: {
+            labels: allocationLabels,
+            datasets: [{
+                data: allocationValues,
+                backgroundColor: ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc949']
+            }]
+        }
+    });
+
+    // One price history chart per stock
+    const priceHistories = {{ price_histories|tojson }};
+
+    for (const ticker in priceHistories) {
+        new Chart(document.getElementById('chart-' + ticker), {
+            type: 'line',
+            data: {
+                labels: priceHistories[ticker].dates,
+                datasets: [{
+                    label: ticker + ' Closing Price',
+                    data: priceHistories[ticker].prices,
+                    borderColor: '#4e79a7',
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: { ticks: { maxTicksLimit: 10 } }
+                }
+            }
+        });
+    }
+</script>
 </body>
 </html>
