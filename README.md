@@ -1,8 +1,8 @@
-# Portfolio Risk Analyzer
+# Investment Portfolio Risk Analyzer
 
 A web app that analyzes a stock portfolio's performance and risk using real market data.
 
-## What it does
+# What it does
 
 - Enter the stocks you own (ticker, shares, purchase date)
 - See your portfolio's current value, return, and risk level
@@ -10,21 +10,21 @@ A web app that analyzes a stock portfolio's performance and risk using real mark
 - View charts for allocation and price history
 - Get automatic insights on concentration, volatility, and diversification
 
-## Built with
+# Built with
 
 Python, Flask, yfinance, Chart.js
 
-## Live demo
+# Live website
 
 https://investment-portfolio-risk-analyzer.onrender.com/analyze
 
-## Run it locally
+# Run it locally
 
 1. Clone the repo
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run: `python app.py`
 4. Open `http://127.0.0.1:5000`
 
-## About
+# About
 
 Built by a first-year University of Waterloo student studying financial analysis and risk management, combining coursework with hands-on coding.
