@@ -1,9 +1,6 @@
-# Portfolio Risk Analyzer
-# Step 1: Collect the user's portfolio (stocks, shares, purchase date)
-
 def get_portfolio():
     """Ask the user to enter each stock they own, one at a time."""
-    portfolio = []  # this will hold a list of stocks the user enters
+    portfolio = []
 
     print("Let's build your portfolio.")
     print("Enter your stocks one at a time. Type 'done' when finished.\n")
@@ -17,7 +14,6 @@ def get_portfolio():
         shares = input(f"How many shares of {ticker} do you own? ").strip()
         purchase_date = input(f"What date did you buy {ticker}? (YYYY-MM-DD): ").strip()
 
-        # save this stock's info as a dictionary
         stock = {
             "ticker": ticker,
             "shares": float(shares),
@@ -31,24 +27,54 @@ def get_portfolio():
 
 import yfinance as yf
 
+from datetime import datetime
+
+def validate_stock_input(ticker, shares, purchase_date):
+    """Check the user's input before we try to analyze it. Raises ValueError with a clear message if something's wrong."""
+    ticker = ticker.upper().strip()
+    if not ticker:
+        raise ValueError("Enter a stock ticker.")
+
+    try:
+        shares = float(shares)
+    except ValueError:
+        raise ValueError(f"'{shares}' is not a valid number of shares.")
+
+    if shares <= 0:
+        raise ValueError("Number of shares must be greater than zero.")
+
+    try:
+        purchase_dt = datetime.strptime(purchase_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(f"'{purchase_date}' is not a valid date. Use YYYY-MM-DD.")
+
+    if purchase_dt.date() > datetime.today().date():
+        raise ValueError(f"Purchase date for {ticker} can't be in the future.")
+
+    return ticker, shares, purchase_date
+
 def get_stock_data(ticker, purchase_date):
     """Download historical price data for a stock, starting from the purchase date."""
     stock = yf.Ticker(ticker)
-    history = stock.history(start=purchase_date)  # prices from purchase date to today
+    history = stock.history(start=purchase_date)
+
+    if history.empty:
+        raise ValueError(f"Couldn't find data for '{ticker}'. Check the ticker symbol.")
+
     return history
 
 def analyze_stock(ticker, shares, data):
     """Calculate return, current value, and volatility for one stock."""
-    purchase_price = data["Close"].iloc[0]   # first closing price after purchase date
-    current_price = data["Close"].iloc[-1]   # most recent closing price
+    purchase_price = data["Close"].iloc[0]
+    current_price = data["Close"].iloc[-1]
 
     invested = purchase_price * shares
     current_value = current_price * shares
     gain_loss = current_value - invested
     percent_return = (gain_loss / invested) * 100
 
-    daily_returns = data["Close"].pct_change().dropna()  # day-to-day % change
-    volatility = daily_returns.std() * 100  # how much the price swings, on average
+    daily_returns = data["Close"].pct_change().dropna()
+    volatility = daily_returns.std() * 100
 
     return {
         "ticker": ticker,
@@ -68,7 +94,6 @@ def analyze_portfolio(results):
     total_gain_loss = total_current_value - total_invested
     total_percent_return = (total_gain_loss / total_invested) * 100
 
-    # weighted average volatility, based on how much money is in each stock
     weighted_volatility = sum(
         r["volatility"] * (r["current_value"] / total_current_value) for r in results
     )
@@ -83,7 +108,7 @@ def analyze_portfolio(results):
 
 def get_benchmark_volatility(start_date):
     """Get the S&P 500's volatility over the same period, for comparison."""
-    benchmark = yf.Ticker("^GSPC")  # ^GSPC is the ticker symbol for the S&P 500
+    benchmark = yf.Ticker("^GSPC")
     data = benchmark.history(start=start_date)
     daily_returns = data["Close"].pct_change().dropna()
     return daily_returns.std() * 100
@@ -94,11 +119,38 @@ def get_risk_label(portfolio_volatility, benchmark_volatility):
     ratio = portfolio_volatility / benchmark_volatility
 
     if ratio < 0.8:
-        return "Low", "Your portfolio moves less than the overall market — generally calmer, more stable."
+        return "Low", "Moves less than the overall market."
     elif ratio <= 1.2:
-        return "Moderate", "Your portfolio moves about as much as the overall market."
+        return "Moderate", "Moves about the same as the overall market."
     else:
-        return "High", "Your portfolio moves more than the overall market — bigger swings up and down."
+        return "High", "Moves more than the overall market."
+
+def generate_insights(results, summary):
+    """Generate short, plain-language tips based on the portfolio's numbers."""
+    tips = []
+
+    for r in results:
+        weight = (r["current_value"] / summary["total_current_value"]) * 100
+        if weight > 50:
+            tips.append(f"{r['ticker']} is {weight:.0f}% of your portfolio. High concentration risk.")
+
+    for r in results:
+        if r["volatility"] > summary["portfolio_volatility"] * 1.3:
+            tips.append(f"{r['ticker']} is more volatile than your portfolio average.")
+
+    if len(results) > 1:
+        avg_return = sum(r["percent_return"] for r in results) / len(results)
+        for r in results:
+            if r["percent_return"] < 0 or r["percent_return"] < avg_return - 20:
+                tips.append(f"{r['ticker']} is underperforming the rest of your portfolio.")
+
+    if len(results) < 3:
+        tips.append(f"Only {len(results)} stock{'s' if len(results) != 1 else ''} held. Low diversification.")
+
+    if not tips:
+        tips.append("No major red flags.")
+
+    return tips
 
 if __name__ == "__main__":
     my_portfolio = get_portfolio()
@@ -119,7 +171,6 @@ if __name__ == "__main__":
 
         summary = analyze_portfolio(results)
 
-     # use the earliest purchase date across the portfolio for a fair benchmark comparison
     earliest_date = min(stock["purchase_date"] for stock in my_portfolio)
     benchmark_volatility = get_benchmark_volatility(earliest_date)
     risk_label, risk_explanation = get_risk_label(summary["portfolio_volatility"], benchmark_volatility)

@@ -2,80 +2,153 @@
 <html>
 <head>
     <title>Your Results</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Your Portfolio, At a Glance</h1>
-    <p><strong>Value:</strong> ${{ "%.2f"|format(summary.total_current_value) }}
-       ({{ "%.2f"|format(summary.total_percent_return) }}% since purchase)</p>
-    <p><strong>Risk level:</strong> {{ risk_label }}</p>
-    <p>{{ risk_explanation }}</p>
+    {% set risk_class = 'risk-high' if risk_label == 'High' else ('risk-moderate' if risk_label == 'Moderate' else 'risk-low') %}
+    {% set change_class = 'positive' if summary.total_gain_loss >= 0 else 'negative' %}
 
-    <hr>
+    <div class="hero">
+        <div class="container">
+            <span class="hero-label">Your portfolio</span>
+            <span class="hero-value">${{ "%.2f"|format(summary.total_current_value) }}</span>
+            <span class="hero-change {{ change_class }}">
+    ${{ "%.2f"|format(summary.total_gain_loss) }} ({{ "%.2f"|format(summary.total_percent_return) }}%) since purchase
+</span>
+            <span class="risk-pill {{ risk_class }}">{{ risk_label }} risk. {{ risk_explanation }}</span>
+        </div>
+    </div>
 
-    <h2>Details</h2>
-    <p>Total invested: ${{ "%.2f"|format(summary.total_invested) }}</p>
-    <p>Total gain/loss: ${{ "%.2f"|format(summary.total_gain_loss) }}</p>
-    <p>Portfolio volatility: {{ "%.2f"|format(summary.portfolio_volatility) }}%</p>
-    <p>S&P 500 volatility (same period): {{ "%.2f"|format(benchmark_volatility) }}%</p>
+    <section>
+        <div class="container">
+            <h2>Insights</h2>
+            <ul class="insight-list">
+            {% for tip in insights %}
+                <li>{{ tip }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+    </section>
 
-    <h3>Per-stock breakdown</h3>
-    <ul>
-    {% for r in results %}
-        <li>{{ r.ticker }}: ${{ "%.2f"|format(r.invested) }} → ${{ "%.2f"|format(r.current_value) }}
-            ({{ "%.2f"|format(r.percent_return) }}%), volatility {{ "%.2f"|format(r.volatility) }}%</li>
-    {% endfor %}
-    </ul>
+    <section>
+        <div class="container grid-2">
+            <div>
+                <h2>Holdings</h2>
+                <table>
+                    <tr>
+                        <th>Ticker</th>
+                        <th class="num">Invested</th>
+                        <th class="num">Value</th>
+                        <th class="num">Return</th>
+                        <th class="num">Volatility</th>
+                    </tr>
+                    {% for r in results %}
+                    <tr>
+                        <td>{{ r.ticker }}</td>
+                        <td class="num">${{ "%.2f"|format(r.invested) }}</td>
+                        <td class="num">${{ "%.2f"|format(r.current_value) }}</td>
+                        <td class="num">{{ "%.2f"|format(r.percent_return) }}%</td>
+                        <td class="num">{{ "%.2f"|format(r.volatility) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                <br>
+                <p>Portfolio volatility: {{ "%.2f"|format(summary.portfolio_volatility) }}%</p>
+                <p>S&P 500 volatility, same period: {{ "%.2f"|format(benchmark_volatility) }}%</p>
+            </div>
 
-    <a href="/">Analyze another portfolio</a>
+            <div>
+                <h2>Allocation</h2>
+                <canvas id="allocationChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2>Price history</h2>
+            <label>Range:
+                <select id="rangeSelect" onchange="updateRange()">
+                    <option value="1M">1 Month</option>
+                    <option value="6M">6 Months</option>
+                    <option value="1Y" selected>1 Year</option>
+                    <option value="All">All</option>
+                </select>
+            </label>
+
+            {% for ticker in price_histories %}
+                <h3>{{ ticker }}</h3>
+                <canvas id="chart-{{ ticker }}"></canvas>
+                <br><br>
+            {% endfor %}
+
+            <a href="/">Analyze another portfolio</a>
+        </div>
+    </section>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const allocationLabels = {{ allocation_labels|tojson }};
+        const allocationValues = {{ allocation_values|tojson }};
+        const priceHistories = {{ price_histories|tojson }};
 
-<h2>Portfolio Allocation</h2>
-<canvas id="allocationChart" width="400" height="400"></canvas>
-
-<h2>Price History</h2>
-{% for ticker in price_histories %}
-    <h3>{{ ticker }}</h3>
-    <canvas id="chart-{{ ticker }}" width="600" height="300"></canvas>
-{% endfor %}
-
-<script>
-    // Allocation pie chart
-    const allocationLabels = {{ allocation_labels|tojson }};
-    const allocationValues = {{ allocation_values|tojson }};
-
-    new Chart(document.getElementById('allocationChart'), {
-        type: 'pie',
-        data: {
-            labels: allocationLabels,
-            datasets: [{
-                data: allocationValues,
-                backgroundColor: ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc949']
-            }]
-        }
-    });
-
-    // One price history chart per stock
-    const priceHistories = {{ price_histories|tojson }};
-
-    for (const ticker in priceHistories) {
-        new Chart(document.getElementById('chart-' + ticker), {
-            type: 'line',
+        new Chart(document.getElementById('allocationChart'), {
+            type: 'pie',
             data: {
-                labels: priceHistories[ticker].dates,
+                labels: allocationLabels,
                 datasets: [{
-                    label: ticker + ' Closing Price',
-                    data: priceHistories[ticker].prices,
-                    borderColor: '#4e79a7',
-                    fill: false
+                    data: allocationValues,
+                    backgroundColor: ['#0F6D51', '#F4C430', '#5B6472', '#6FCF97', '#EB5757', '#3A4A63']
                 }]
             },
-            options: {
-                scales: {
-                    x: { ticks: { maxTicksLimit: 10 } }
+            options: { responsive: true }
+        });
+
+        function filterByRange(dates, prices, range) {
+            const tradingDaysMap = { "1M": 21, "6M": 126, "1Y": 252, "All": dates.length };
+            const n = tradingDaysMap[range] || dates.length;
+            const start = Math.max(0, dates.length - n);
+            return { dates: dates.slice(start), prices: prices.slice(start) };
+        }
+
+        const priceCharts = {};
+
+        function renderPriceCharts(range) {
+            for (const ticker in priceHistories) {
+                const filtered = filterByRange(priceHistories[ticker].dates, priceHistories[ticker].prices, range);
+
+                if (priceCharts[ticker]) {
+                    priceCharts[ticker].data.labels = filtered.dates;
+                    priceCharts[ticker].data.datasets[0].data = filtered.prices;
+                    priceCharts[ticker].update();
+                } else {
+                    priceCharts[ticker] = new Chart(document.getElementById('chart-' + ticker), {
+                        type: 'line',
+                        data: {
+                            labels: filtered.dates,
+                            datasets: [{
+                                label: ticker,
+                                data: filtered.prices,
+                                borderColor: '#0F6D51',
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: { x: { ticks: { maxTicksLimit: 10 } } }
+                        }
+                    });
                 }
             }
-        });
-    }
-</script>
+        }
+
+        function updateRange() {
+            renderPriceCharts(document.getElementById('rangeSelect').value);
+        }
+
+        renderPriceCharts("1Y");
+    </script>
 </body>
 </html>

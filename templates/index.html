@@ -2,24 +2,34 @@
 <html>
 <head>
     <title>Portfolio Risk Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Portfolio Risk Analyzer</h1>
-    <p>Enter your stocks below to analyze your portfolio.</p>
+    <section>
+        <div class="container">
+            <h1>Portfolio Risk Analyzer</h1>
+            <p>Enter your stocks below to analyze your portfolio.</p>
 
-    <form method="POST" action="/analyze">
-        <div id="stock-rows">
-            <div class="stock-row">
-                <input type="text" name="ticker" placeholder="Ticker (e.g. AAPL)" required>
-                <input type="number" step="any" name="shares" placeholder="Shares" required>
-                <input type="date" name="purchase_date" required>
-            </div>
+            <form method="POST" action="/analyze">
+                <div id="stock-rows">
+                    <div class="stock-row">
+                        <input type="text" name="ticker" placeholder="Ticker (e.g. AAPL)" required>
+                        <input type="number" step="any" name="shares" placeholder="Shares" required>
+                        <input type="date" name="purchase_date" required>
+                    </div>
+                </div>
+
+                <button type="button" class="secondary" onclick="addStockRow()">+ Add another stock</button>
+                <br><br>
+                <button type="submit">Analyze portfolio</button>
+                {% if error %}
+<div class="error-message">{{ error }}</div>
+{% endif %}
+            </form>
         </div>
-
-        <button type="button" onclick="addStockRow()">+ Add another stock</button>
-        <br><br>
-        <button type="submit">Analyze Portfolio</button>
-    </form>
+    </section>
 
     <script>
         function addStockRow() {
